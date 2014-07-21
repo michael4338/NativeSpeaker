@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   
+					   applicationComplete="onApplicationComplete()"
+					   >
+
+	<fx:Script>
+		<![CDATA[
+			import air.update.ApplicationUpdaterUI;  
+			
+			private var appUpdater:ApplicationUpdaterUI = null;
+			
+			private function onApplicationComplete():void{
+				checkForUpdate();
+				createMainWindow();
+				setSelfStart();
+			}
+			
+			private function checkForUpdate():void
+			{
+				appUpdater = new ApplicationUpdaterUI();
+				appUpdater.configurationFile = new File("app:/assets/config/update-config.xml");
+				appUpdater.initialize();
+				
+				var timer:Timer = new Timer(1000,1);
+				timer.addEventListener(TimerEvent.TIMER, onTimerCheckUpdate);
+				timer.start();
+			}
+			
+			private function onTimerCheckUpdate(e:TimerEvent):void{
+				appUpdater.checkNow();
+			}
+			
+			private function createMainWindow():void{
+				var mainWindow:MainWindow = new MainWindow;;
+				mainWindow.open();				
+			}
+			
+			private function setSelfStart():void{
+				try{
+					NativeApplication.nativeApplication.startAtLogin = true;
+				}catch(e:Error){
+					trace(e.message);
+				}				
+			}
+		
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+</s:Application>

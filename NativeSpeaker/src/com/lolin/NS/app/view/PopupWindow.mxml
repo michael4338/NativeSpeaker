@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.managers.PopUpManager;
+			
+			[Bindable]
+			private var info:String = "";
+			
+			public function createPopUpWindow(parentWin:UIComponent, msg:String):void{
+				info = msg;
+				PopUpManager.addPopUp(this, parentWin, true);
+				PopUpManager.centerPopUp(this);
+			}
+		]]>
+	</fx:Script>
+
+	<mx:Button label="{info}" click="PopUpManager.removePopUp(this);"/>
+</mx:VBox>

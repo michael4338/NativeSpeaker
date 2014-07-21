@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute" 
+	width="702" 
+	height="290"
+    title="Send Mail"
+	fontSize="12"
+    creationComplete="init()"
+    close="onClose()"
+>
+	
+	<mx:Script>
+			<![CDATA[
+				import com.lolin.NS.app.control.*;
+				import com.lolin.NS.app.model.Entry.*;
+				import com.lolin.NS.app.model.dao.*;
+				
+				import mx.controls.Alert;
+				import mx.utils.StringUtil;
+				
+				import org.bytearray.smtp.events.SMTPEvent;
+				import org.bytearray.smtp.mailer.SMTPMailer;
+				
+				private var MAX_COUNT:int = 99999;
+				private var arrayTotal:Array = new Array;
+				
+				[Bindable]
+				private var MAX_NUM:String = "";
+
+				public function init():void{
+					var dao:NSDao = new NSDao;				
+					arrayTotal = dao.getPhraseList(0, this.MAX_COUNT);	
+					
+					this.MAX_NUM = arrayTotal.length.toString();
+				}
+				
+				private function onClose():void{
+					arrayTotal = null;
+				}
+				
+				private function onClickSend():void {
+					var msg:String = getMessageContent();
+					if(msg == null) {
+						//Alert.show("invalid input about the start and end indexes, please check", "invalid input", 4, this);
+						return;
+					}
+					
+					this.sendMail(msg);
+				}
+				
+				private function getMessageContent():String{
+					var startIndex:int = (int)(StringUtil.trim(this.startNum.text));
+					var endIndex:int = (int)(StringUtil.trim(this.endNum.text));
+					if(isNaN(startIndex) || isNaN(endIndex)) return null;
+					
+					var num:int =  endIndex - startIndex;
+					if(num <= 0) return null;
+					
+					return getStringFromArray(startIndex, endIndex);
+				}
+				
+				private function getStringFromArray(startIndex:int, endIndex:int):String{
+					var res:String = "";
+					
+					for(var i:int=startIndex; i<arrayTotal.length && i<endIndex; i++){
+						var obj:Object = new Object;
+						var currentEntity:PhraseEntity = arrayTotal[i] as PhraseEntity;
+						
+						res += (i+1).toString() + ". ";
+						res += currentEntity.getPhrase() + "<br><br>";
+					}
+					
+					return res;
+				}
+				
+
+				
+				private function sendMail(msg:String):void{
+					var mailer:SMTPMailer = new SMTPMailer("namail.corp.adobe.com", 25);
+					//var mailer:SMTPMailer = new SMTPMailer("smtp.mail.yahoo.com.cn", 25);
+					
+					mailer.addEventListener(SMTPEvent.MAIL_SENT, onMailSent);
+					mailer.addEventListener(SMTPEvent.MAIL_ERROR, onMailError);
+					mailer.addEventListener(SMTPEvent.CONNECTED, onConnected);
+					mailer.addEventListener(SMTPEvent.DISCONNECTED, onDisconnected);
+					mailer.addEventListener(SMTPEvent.AUTHENTICATED, onAuthSuccess);
+					mailer.addEventListener(SMTPEvent.BAD_SEQUENCE, onAuthFailed);
+					
+					mailer.sendHTMLMail ( StringUtil.trim(this.fromList.text), 
+						StringUtil.trim(this.toList.text), 
+						this.subject.text, 
+						//"<img src='http://www.google.com/images/logo_sm.gif'</img><br><b>Picture from HTML :)</b>"
+						msg
+					);					
+				}
+				public function onMailSent(e:SMTPEvent):void{
+					trace("mail has sent out");
+					this.sendingStatus.text += "mail has sent out" + "\n";
+				}
+				public function onMailError(e:SMTPEvent):void{
+					trace("error: " + e.toString());
+					this.sendingStatus.text += "error: " + e.toString() + "\n";
+				}
+				public function onConnected(e:SMTPEvent):void{
+					trace("connected to mail server");
+					this.sendingStatus.text += "connected to mail server\n";
+				}
+				public function onAuthSuccess(e:SMTPEvent):void{
+					trace("authenticated pass");
+					this.sendingStatus.text += "authenticated pass\n";
+				}
+				public function onDisconnected(e:SMTPEvent):void{
+					trace("disconnected from mail server");
+					this.sendingStatus.text += "disconnected from mail server\n";
+				}
+				public function onAuthFailed(e:SMTPEvent):void{
+					trace("authenticate failed");
+					this.sendingStatus.text += "authenticate failed\n";
+				}
+				
+			]]>
+		</mx:Script>
+	
+	<mx:Form width="697" height="244" x="0" y="14">	
+
+		<mx:HBox  width="662" height="174">
+			<mx:VBox width="436" height="160">
+				<mx:HBox>
+					<mx:Label text="To: " width="60"/>
+					<mx:TextInput id="toList" width="240"/>
+				</mx:HBox>
+				<mx:HBox>
+					<mx:Label text="From: " width="60"/>
+					<mx:TextInput id="fromList" width="240" text="AutoSupply@NativeSpeaker.com"/>
+				</mx:HBox>		
+				<mx:HBox>
+					<mx:Label text="Subject: " width="60" />
+					<mx:TextInput id="subject" width="240" text="Auto Supply from Native Speaker"/>
+				</mx:HBox>		
+				<mx:HBox>
+					<mx:Label text="SMTP: " width="60" />
+					<mx:TextInput id="smtpServer" width="120" text="namail.corp.adobe.com"/>
+					<mx:Label text="Port: " width="60" />
+					<mx:TextInput id="smtpPort" text="25" width="60"/>
+				</mx:HBox>		
+				<mx:HBox>
+					<mx:Label text="Start: " width="60" />
+					<mx:TextInput id="startNum" width="60" text="0"/>
+					<mx:Label text="End: " width="60" />
+					<mx:TextInput id="endNum" text="{MAX_NUM}" width="120"/>
+				</mx:HBox>	
+			</mx:VBox>
+			
+			<mx:VBox >
+				<mx:HBox>
+					<mx:Label text="Sending Status: "/>
+				</mx:HBox>
+				<mx:HBox>
+					<mx:TextArea id="sendingStatus" width="211" height="133"/>
+				</mx:HBox>
+			</mx:VBox>
+		</mx:HBox>
+		
+		<mx:HBox  width="663" height="27">
+			<mx:Button label="send"  fontWeight="normal" click="onClickSend()"/>
+			<mx:Spacer width="500"/>
+			<mx:Button label="cancel" click="this.close()" fontWeight="normal"/>
+		</mx:HBox>
+		
+	</mx:Form>
+
+</mx:Window>

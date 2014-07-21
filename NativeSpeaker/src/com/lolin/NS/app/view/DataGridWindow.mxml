@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window 
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="902" height="454" 
+    showStatusBar="false"
+	resizable="false"
+	systemChrome="none"
+	type="lightweight"
+
+    creationComplete="init()"
+>
+	
+	<mx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.control.*;
+			import com.lolin.NS.app.model.Entry.*;
+			import com.lolin.NS.app.model.dao.*;
+			import com.lolin.NS.app.view.Events.*;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			[Bindable]
+			private var arrayList:ArrayCollection = new ArrayCollection();
+			private var MAX_COUNT:int = 99999;
+			
+			private var last_index:int = 0;
+			private var last_phrase:String = null;
+			
+			private function init():void{
+				prepareData();
+				dg.addEventListener(DeleteEvent.DELETEEVENT, deleteHandler);
+				dg.addEventListener(UpdateEvent.UPDATEEVENT, updateHandler);
+				dg.addEventListener(AddEvent.ADDEVENT, addHandler);
+			}
+			
+			private function prepareData():void{
+				
+				var dao:NSDao = new NSDao;				
+				var array:Array = dao.getPhraseList(0, this.MAX_COUNT);
+				
+				for(var i:int = 0; i<array.length; i++){
+					var obj:Object = new Object;
+					var currentEntity:PhraseEntity = array[i] as PhraseEntity;
+					obj["ID"] = i;//currentEntity.getID()
+					obj["Phrase"] = currentEntity.getPhrase();
+					
+					arrayList.addItem(obj);
+				}
+				
+				dao.close();		
+			}
+			
+			private function deleteHandler(event:DeleteEvent):void{
+			}
+			
+			public function deleteRecord():void{
+				trace(dg.selectedItem.Phrase as String);
+				var writer:Writer = new Writer;
+				
+				var popupWin:PopupWindow = new PopupWindow;
+				popupWin.createPopUpWindow(this, writer.deletePhraseFromDB(dg.selectedItem.Phrase as String));	
+
+				var index:int = findItemIndex(dg.selectedItem.Phrase);
+				if(index >=0 && index < arrayList.length) 
+					arrayList.removeItemAt(index);
+			}
+			
+			private function findItemIndex(phrase:String):int{
+				for(var i:int = 0; i<arrayList.length; i++){
+					if(arrayList.getItemAt(i)["Phrase"] == phrase)
+						return i;
+				}
+				return -1;
+			}
+			
+			private function findChipIndex(phraseChip:String, startIndex:int):int{
+				if(startIndex >= arrayList.length) startIndex -= arrayList.length;
+				
+				var lowerCasePhraseChip:String = phraseChip.toLowerCase();
+				for(var i:int = startIndex; i<arrayList.length; i++){
+					if((arrayList.getItemAt(i)["Phrase"] as String).toLowerCase().indexOf(lowerCasePhraseChip) >= 0)
+						return i;
+				}
+				return -1;				
+			}
+			
+			private function updateHandler(event:UpdateEvent):void{
+				trace(dg.selectedItem.Phrase as String);
+				var userUpdate:UserUpdate = new UserUpdate();
+				userUpdate.createWindow(this, dg.selectedItem.Phrase);
+			}
+			
+			public function updateDG(data:String):void{
+				var index:int = findItemIndex(dg.selectedItem.Phrase);
+				if(index >=0 && index < arrayList.length) 
+					arrayList.setItemAt(data, index);
+			}
+			
+			private function addHandler(event:AddEvent):void{
+			}
+			
+			public function addRecord():void{
+				trace(dg.selectedItem.Phrase as String);
+				var userAdd:UserAdd = new UserAdd();
+				userAdd.createWindow(this);
+			}
+			
+			public function addDG(data:String):void{
+				var obj:Object = new Object;
+				obj["ID"] = arrayList.length;
+				obj["Phrase"] = data;
+				arrayList.addItem(obj);
+			}
+			
+			private function doSearch():void{
+				if(tisearch.text == "" || tisearch.text == null) return;
+				
+				if(tisearch.text != this.last_phrase){
+					this.last_index = 0;
+					this.last_phrase = null;
+				}
+				
+				var index:int = findChipIndex(tisearch.text, this.last_index);
+				
+				if(index != -1) {
+					this.last_index = index+1;
+					this.last_phrase = tisearch.text;
+					
+					this.dg.scrollToIndex(index);
+					this.dg.selectedIndex = index;
+				} else{
+					if(this.last_phrase != null){
+						this.last_index = 0;
+						this.last_phrase = null;
+						doSearch();
+					}
+				}
+			}
+			
+		]]>
+	</mx:Script>
+	
+	
+	<mx:VBox>
+	
+	<mx:HBox>
+	<mx:TextInput id="tisearch" width="200" height="20" alpha="0.5" borderStyle="inset" enter="doSearch()" borderAlpha="0.1"/>
+	<mx:LinkButton toolTip="search" click="doSearch()" icon="@Embed('assets/image/search_16.png')"/>
+	</mx:HBox>
+	
+	<mx:DataGrid id="dg" top="0" left="0" right="0" width="900" height="400" dataProvider="{arrayList}">  
+		<mx:columns>
+			<mx:DataGridColumn headerText="Serial" dataField="ID" editable="false" width="45"/> 
+			<mx:DataGridColumn headerText="Sentence" dataField="Phrase" editable="true" width="800" 
+							   itemRenderer="mx.controls.Label"/>
+			
+			<mx:DataGridColumn headerText="Del" width="40">
+				<mx:itemRenderer>  
+					<mx:Component>  
+						<mx:LinkButton toolTip="delete" click="deleteRecord(event)" icon="@Embed('assets/image/del_16.png')"> 
+							<mx:Script>
+								<![CDATA[
+									import com.lolin.NS.app.view.Events.DeleteEvent;
+									private function deleteRecord(e:MouseEvent):void{
+										//dispatchEvent(new DeleteEvent(data, DeleteEvent.DELETEEVENT));
+										parentDocument.deleteRecord();
+									}
+								]]>
+							</mx:Script> 
+						</mx:LinkButton>
+					</mx:Component>  
+				</mx:itemRenderer>   
+			</mx:DataGridColumn>  
+			
+			<mx:DataGridColumn headerText="Edit" width="40">
+				<mx:itemRenderer>  
+					<mx:Component>  
+						<mx:LinkButton toolTip="edit" click="updateRecord(event)" icon="@Embed('assets/image/edit_16.png')"> 
+							<mx:Script>
+								<![CDATA[
+									import com.lolin.NS.app.view.Events.UpdateEvent;
+									private function updateRecord(e:MouseEvent):void{
+										dispatchEvent(new UpdateEvent(data, UpdateEvent.UPDATEEVENT));
+									}
+								]]>
+							</mx:Script> 
+						</mx:LinkButton>
+					</mx:Component>  
+				</mx:itemRenderer>   
+			</mx:DataGridColumn>  
+			
+			<mx:DataGridColumn headerText="Add" width="40">
+				<mx:itemRenderer>  
+					<mx:Component>  
+						<mx:LinkButton toolTip="add" click="addRecord(event)" icon="@Embed('assets/image/add_16.png')"> 
+							<mx:Script>
+								<![CDATA[
+									import com.lolin.NS.app.view.Events.AddEvent;
+									private function addRecord(e:MouseEvent):void{
+										//dispatchEvent(new AddEvent(data, AddEvent.ADDEVENT));
+										parentDocument.addRecord();
+									}
+								]]>
+							</mx:Script> 
+						</mx:LinkButton>
+					</mx:Component>  
+				</mx:itemRenderer>   
+			</mx:DataGridColumn>  
+			
+		</mx:columns>  
+	</mx:DataGrid>  
+	
+	</mx:VBox>
+	
+</mx:Window>

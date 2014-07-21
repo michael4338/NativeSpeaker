@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="480" height="450"
+	systemChrome="none"
+	showStatusBar="false"
+	type="lightweight"
+	transparent="true"
+	title="Native Speaker Usage"
+>
+
+	<mx:Canvas>
+		<mx:VBox left="20" top="10">
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Ctrl + H/h ------ Show Usage"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Ctrl + F/f ------ Setting up Font"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Ctrl + C/c ------ Setting up Color"/>		
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Ctrl + D/d ------ Delete Current Record"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Ctrl + T/t ------ Show All the Contents"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Drag the Sentence to the Bar for Adding"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Put Mouse on the Record to Pause Looping"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Drag Mouse on the Record to Move it"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="Double Click to Edit the Current Record"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="When Editting, Clear the Record and Return to Delete"/>
+			<mx:Text fontSize="18" color="0x0FFFF0" text="When Editting, Put + at the Beginning to Add"/>
+		</mx:VBox>
+	</mx:Canvas>
+	
+</mx:Window>

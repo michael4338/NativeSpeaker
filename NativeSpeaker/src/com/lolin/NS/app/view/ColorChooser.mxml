@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window 
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/mx" 
+	
+	width="233" height="260"
+	layout="absolute"
+	systemChrome="none"
+	showStatusBar="false"
+	type="lightweight"
+	transparent="true" 
+	backgroundAlpha="0"
+    showFlexChrome="false"
+    alwaysInFront="true"
+	
+    creationComplete="init()"
+>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.view.Events.*;
+			
+			public var obj:Object = null;
+			
+			[Bindable]
+			public var formerColor:uint = 0xFF0000;
+			
+			private function init():void{
+				this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			}
+			
+			private function onMouseDown(e:MouseEvent):void{
+				this.stage.nativeWindow.startMove();
+			}
+			
+			private function onClose():void{
+				trace("color event dispatched");
+				//this.dispatchEvent(new ColorEvent(cp.selectedColor, ColorEvent.COLOREVENT));
+				(obj as MainWindow).callBack("color", cp.selectedColor.toString()); 
+				//this.close();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:ColorPicker id="cp" 
+		showTextField="true" 
+		selectedColor="{formerColor}" 
+		width="60" height="60" 
+	    close="onClose()"
+	/>  
+	
+	
+</mx:Window>
+
+
+
+
+

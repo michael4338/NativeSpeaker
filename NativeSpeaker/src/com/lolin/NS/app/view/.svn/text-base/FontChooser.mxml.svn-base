@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window 
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	
+	width="300" height="400"
+	layout="absolute"
+	systemChrome="none"
+	showStatusBar="false"
+	type="lightweight"
+	transparent="true" 
+    showFlexChrome="false"
+	backgroundAlpha="0"
+    alwaysInFront="true"
+>
+	
+	<mx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.view.Events.*;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.collections.SortField;
+			import mx.utils.ObjectProxy;
+			
+			public var obj:Object = null;
+			
+			[Bindable]
+			private var fontArrayList:ArrayCollection = new ArrayCollection;
+			
+			public function setDefaultFont(fontName:String):void{
+				for(var i:int = 0; i<fontArrayList.length; i++){
+					var target:String = (fontArrayList.getItemAt(i))["fontName"];
+					if(target == fontName)
+						break;
+				}
+				comboBox.selectedIndex = i;
+			}
+			
+			public function init():void{
+				var fontArray:Array = Font.enumerateFonts(true);
+				var dataSortField:SortField = new SortField();
+				dataSortField.name = "fontName";
+				var numericDataSort:Sort = new Sort();
+				numericDataSort.fields = [dataSortField];
+				fontArrayList.sort = numericDataSort;
+				
+				for(var i:int = 0; i<fontArray.length; i++)
+					fontArrayList.addItem(new ObjectProxy({"num":i, "fontName":fontArray[i]["fontName"]}));
+				
+				fontArrayList.refresh();
+				
+				this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			}
+			
+			
+			private function onMouseDown(e:MouseEvent):void{
+				this.stage.nativeWindow.startMove();
+			}
+			
+			private function onClose():void{
+				trace("font chooser close");
+				//dispatchEvent(new FontEvent(comboBox.selectedLabel, FontEvent.FONTEVENT));
+				(obj as MainWindow).callBack("font", comboBox.selectedLabel);
+				//this.close();//since a bug
+			}
+			
+		]]>
+	</mx:Script>
+	
+	
+	<mx:ComboBox id="comboBox"
+				 dataProvider="{fontArrayList}"
+				 labelField="fontName"
+				 close="onClose()"
+				 fontSize="14"
+				 width="200"
+				 height="30"
+				 open="comboBox.dropdown.variableRowHeight = true;">
+		<mx:itemRenderer>
+			<mx:Component>
+				<mx:Label fontFamily="{data.fontName}"
+						  toolTip="{data.fontName}" />
+			</mx:Component>
+		</mx:itemRenderer>
+	</mx:ComboBox>
+
+	
+	
+</mx:Window>
+
+
+
+
+

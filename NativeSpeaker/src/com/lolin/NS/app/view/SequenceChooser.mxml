@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window 
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/mx" 
+	
+	width="233" height="260"
+	layout="absolute"
+	systemChrome="none"
+	showStatusBar="false"
+	type="lightweight"
+	transparent="true" 
+	backgroundAlpha="0"
+    showFlexChrome="false"
+    alwaysInFront="true"
+	
+    creationComplete="init()"
+>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.view.Events.*;
+			
+			public var obj:Object = null;
+			
+			[Bindable]
+			public var formerColor:uint = 0xFF0000;
+			
+			private function init():void{
+				this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+			}
+			
+			private function onMouseDown(e:MouseEvent):void{
+				this.stage.nativeWindow.startMove();
+			}
+			
+			private function selectChange(e:Event):void{
+				(obj as MainWindow).callBack("sequence", (e.currentTarget as RadioButton).label); 
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroupSequenceChooser"/>
+	</fx:Declarations>
+	<s:RadioButton x="11" y="0" label="Serial" groupName="radiogroupSequenceChooser" change="selectChange(event)"/>
+	<s:RadioButton x="11" y="26" label="Random" groupName="radiogroupSequenceChooser" change="selectChange(event)"/>
+	
+	
+</mx:Window>
+
+
+
+
+

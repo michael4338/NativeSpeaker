@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	showCloseButton="true" 
+	close="doClose();" 
+	layout="absolute" 
+	width="500" 
+	height="200"
+	title="update the info" 
+	fontSize="12"
+>
+	
+	<mx:Script>
+			<![CDATA[
+				import com.lolin.NS.app.control.*;
+				
+				import mx.controls.Alert;
+				import mx.controls.DataGrid;
+				import mx.core.UIComponent;
+				import mx.managers.PopUpManager;
+				import mx.utils.StringUtil;
+				
+				private var oldData:String = null;
+				private var _parent:UIComponent = null;
+				
+				public function createWindow(parent:UIComponent, data:String):void{
+					PopUpManager.addPopUp(this, parent, true);
+					PopUpManager.centerPopUp(this);
+					this.newPhrase.text = data;
+					oldData = StringUtil.trim(data);
+					_parent = parent;
+				}
+				
+				private function doClose():void{
+					PopUpManager.removePopUp(this);
+				}
+
+				private function updateUserSuccess():void {
+					
+					var popupWin:PopupWindow = new PopupWindow;
+					
+					if(this.newPhrase.text != null && StringUtil.trim(this.newPhrase.text).length > 0){
+						var writer:Writer = new Writer;
+						(_parent as DataGridWindow).updateDG(StringUtil.trim(this.newPhrase.text));
+						popupWin.createPopUpWindow(this, writer.updatePhraseToDB(oldData, StringUtil.trim(this.newPhrase.text)));
+					}else{
+						popupWin.createPopUpWindow(this, "Fails, Cannot Be Empty");
+					}
+					PopUpManager.removePopUp(this);
+				}
+				
+			]]>
+		</mx:Script>
+	
+	<mx:Text id="idt"  visible="false"/>
+	<mx:Form  height="100%" horizontalCenter="0" width="100%">	
+		<mx:FormItem label="Phrase:"  fontSize="12" borderColor="#AEBFCA" borderStyle="none" width="20%">
+			<mx:TextArea id="newPhrase" width="404" fontSize="12" height="100"/>
+		</mx:FormItem>
+
+		<mx:HBox width="100%">
+			<mx:Spacer width="55"/>
+			<mx:Button label="ok"  fontWeight="normal" click="updateUserSuccess()"/>
+			<mx:Spacer width="245"/>
+			<mx:Button label="cancel" click="doClose()" fontWeight="normal"/>
+		</mx:HBox>
+		
+	</mx:Form>
+
+</mx:TitleWindow>

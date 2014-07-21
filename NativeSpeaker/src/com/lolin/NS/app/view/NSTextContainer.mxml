@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		   xmlns:s="library://ns.adobe.com/flex/spark" 
+		   xmlns:mx="library://ns.adobe.com/flex/mx" 
+		   width="100%" height="100%"
+		   creationComplete="onInit()"
+		   >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.control.PoolManager;
+			import com.lolin.NS.app.control.Writer;
+			import com.lolin.NS.app.view.Events.*;
+			
+			import mx.core.Window;
+			import mx.utils.StringUtil;
+			
+			[Bindable]
+			private static var version:String = "";
+			
+			[Bindable]
+			private var greeting:String = null;
+			
+			private const CRRATE:int = 80;
+			
+			private const FONTSIZE:int = 23;
+			[Bindable]
+			private var fontSize:int = FONTSIZE;
+			
+			[Bindable]
+			private var textWidth:int = 0;
+			[Bindable]
+			private var textHeight:int = 0;
+			
+			[Bindable]
+			public var fontColor:uint = 0x7FFF00;
+			
+			[Bindable]
+			public var ftStyle:String = "Times New Roman";
+			
+			public static const RETURN_TYPE_DBERROR:String = "DB_ERROR";
+			public static const RETURN_TYPE_SUCCESS:String = "SUCCESSS";
+			public static const RETURN_TYPE_EXISTED:String = "RECORD ALREADY EXISTED";
+			
+			public var poolManager:PoolManager = null;
+			
+			public var currentInfo:String = null;
+			
+			public var parentWin:MainWindow = null;
+			
+			private function onInit():void{
+				addDragDropFunction();
+				getVersion();
+				taInfoInput.addEventListener(KeyboardEvent.KEY_DOWN, onKeyboardDown);
+				
+				this.addEventListener(ColorEvent.COLOREVENT, onColorEvent);
+			}
+			
+			private function onColorEvent(e:ColorEvent):void{
+				trace("color event received");
+				fontColor = (e.target as ColorEvent)._color;
+			}
+			
+			public function show(info:String, id:int=-1):void{
+				currentInfo = info;
+				if(id == -1){
+					calculateFontSize(info.length + id.toString().length)
+					textInfo.text = info;
+				}
+				else{
+					calculateFontSize(info.length + id.toString().length + 2);
+					textInfo.text = id.toString() + ". " + info;
+				}
+			}	
+			
+			public function edit():void{
+				if(poolManager == null) return;
+				
+				poolManager.pause();
+				poolManager.lock();
+				
+				textInfo.visible = false;
+				taInfoInput.visible = true;
+				
+				taInfoInput.text = currentInfo;
+			}
+			
+			public function finishEdit():void{
+				this.parentWin.editing = false;
+				
+				if(poolManager == null) return;
+				
+				textInfo.visible = true;
+				taInfoInput.visible = false;
+				
+				poolManager.unLock();
+				
+				if(taInfoInput.text.length == 0){
+					trace(this.deleteFromDB(currentInfo));
+					poolManager.resume(true);
+				}else{
+					//add a logic here: if sentense starts with "+", add it instead of update it
+					if(taInfoInput.text.indexOf("+") == 0){
+						writeToDB(taInfoInput.text.substring(1, taInfoInput.text.length));
+					}
+					else{
+						trace(this.updateIntoDB(currentInfo, taInfoInput.text));
+						this.show(taInfoInput.text);
+					}
+					poolManager.resume();
+				}
+			}
+			
+			public function hangout():void{
+				if(poolManager == null) return;
+				poolManager.pause();
+			}
+			
+			public function finishHangout():void{
+				if(poolManager == null) return;
+				poolManager.resume();
+			}
+			
+			public function deleteCurrent():void{
+				trace(this.deleteFromDB(currentInfo));
+				poolManager.resume(true);
+			}
+			
+			
+			private function onKeyboardDown(e:KeyboardEvent):void{
+				if(e.keyCode == 13) finishEdit();
+			}
+			
+			private function calculateFontSize(num:int):void{
+				if(parentWin.hide == true) return;
+				
+				trace("number of chars: " + num.toString());
+				
+				if(num <= 100) fontSize = 23;
+				else if(100 < num && num <= 200) fontSize = 18;
+				else fontSize = 12;
+				
+				trace("font size: " + fontSize.toString());
+				
+				//row*row*CRRATE = num
+				var row:int = Math.ceil((Math.sqrt(num/CRRATE)));
+				var col:int = Math.ceil((num/row)) + /*buffer*/2;
+				
+				trace("col and row: " + col.toString() + ", " + row.toString());
+				
+				parentWin.width = Math.ceil(col * fontSize / 2);
+				parentWin.height = Math.ceil(row * 1.8 * fontSize);
+				textWidth = parentWin.width;
+				textHeight = parentWin.height;
+				
+				trace("self width, height: " + textWidth +","+ textHeight + "\n");
+			}
+			
+			private function getVersion():void{
+				var appXML:XML = NativeApplication.nativeApplication.applicationDescriptor;  
+				var ns:Namespace = appXML.namespace();  
+				version = appXML.ns::version; 
+				greeting = "Native Speaker Version " + version + ", you are gonna love it";
+			}
+			
+			private function addDragDropFunction():void{
+				this.addEventListener(NativeDragEvent.NATIVE_DRAG_ENTER, onDragEnter);
+				this.addEventListener(NativeDragEvent.NATIVE_DRAG_DROP, onDrop);	
+			}
+				
+			private function onDragEnter(e:NativeDragEvent):void{
+				if(e.clipboard.hasFormat(ClipboardFormats.TEXT_FORMAT))
+					NativeDragManager.acceptDragDrop(this);
+			}
+				
+			private	function onDrop(e:NativeDragEvent):void{
+				var info:String = e.clipboard.getData(ClipboardFormats.TEXT_FORMAT) as String;
+				writeToDB(info);
+			}	
+			
+			private function writeToDB(info:String):void{				
+				var writer:Writer = new Writer;
+				if(writer.writePhraseToDB(StringUtil.trim(info)) == NSTextContainer.RETURN_TYPE_EXISTED){
+					var popupWin:PopupWindow = new PopupWindow;
+					popupWin.createPopUpWindow(this, NSTextContainer.RETURN_TYPE_EXISTED);					
+				}else{
+					show(info);
+				}
+			}
+			
+			private function deleteFromDB(info:String):String{
+				var writer:Writer = new Writer;
+				return writer.deletePhraseFromDB(StringUtil.trim(info));				
+			}
+			
+			private function updateIntoDB(oldInfo:String, newInfo:String):String{
+				var writer:Writer = new Writer;
+				return writer.updatePhraseToDB(StringUtil.trim(oldInfo), StringUtil.trim(newInfo));				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Text id="textInfo" 
+		    textAlign="left"
+		    			
+			width="{textWidth}" height="{textHeight}" 
+			fontSize="{fontSize}" 
+			color="{fontColor}" 
+		    fontFamily="{ftStyle}"
+		   
+			top="0" bottom="0" left="0" right="0" 
+			text="{greeting}"
+		    leading="{fontSize/3}"
+		    visible="true"
+	/>
+	
+	<mx:TextArea textAlign="left" leading="{fontSize/3}" width="{textWidth}" height="{textHeight}" text="" id="taInfoInput" visible="false" top="0" right="0" left="0" bottom="0"/>
+	
+</mx:Canvas>

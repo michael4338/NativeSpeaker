@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		   
+		  xmlns:view="com.lolin.NS.app.view.*"
+		  
+		  creationComplete="onInit()"
+		  
+		  showStatusBar="false"
+		  width="600" height="80" 
+		  
+		  transparent="true"
+		  alpha="0.88"
+		  visible="true"
+		  alwaysInFront="true"
+		  systemChrome="none"
+		  type="lightweight"
+		  
+		  backgroundAlpha="0.01"
+		  backgroundColor="0x323232"
+		  >
+
+	
+	<fx:Script>
+		<![CDATA[
+			import com.lolin.NS.app.control.PoolManager;
+			import com.lolin.NS.app.model.Entry.PhraseEntity;
+			import com.lolin.NS.app.model.NSDB.NSDB;
+			import com.lolin.NS.app.model.dao.NSDao;
+			import com.lolin.NS.app.view.*;
+			
+			import flash.data.EncryptedLocalStore;
+			
+			import mx.containers.Tile;
+			import mx.containers.TitleWindow;
+			import mx.utils.object_proxy;
+		
+			
+			private var colorPanel:ColorChooser = null;
+			
+			public var hide:Boolean = false;
+			public var editing:Boolean = false;
+			
+			private function onInit():void{
+				moveWindowToRightPosition();
+				
+				this.doubleClickEnabled = true;
+				this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+				this.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+				this.addEventListener(MouseEvent.DOUBLE_CLICK, onDoubleClick);
+				this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseOver);
+				this.addEventListener(MouseEvent.MOUSE_OUT, onMouseOut);
+
+				this.addEventListener(Event.CLOSE, onClose);
+				
+				this.stage.addEventListener(KeyboardEvent.KEY_DOWN,keyListener);
+							
+				var timer:Timer = new Timer(3000, 1);
+				timer.addEventListener(TimerEvent.TIMER, onTimer);
+				timer.start();
+				
+				viewContainer.parentWin = this;
+			}
+			
+			private function moveWindowToRightPosition():void{
+				var xba:ByteArray = EncryptedLocalStore.getItem("XPOS");
+				var yba:ByteArray = EncryptedLocalStore.getItem("YPOS");
+				var colorba:ByteArray = EncryptedLocalStore.getItem("COLOR");
+				var fontba:ByteArray = EncryptedLocalStore.getItem("FONT");
+				var sequenceba:ByteArray = EncryptedLocalStore.getItem("SEQUENCE");
+				
+				if(colorba != null){
+					var color:uint = uint(colorba.readUTF());
+					if(!isNaN(color)){
+						viewContainer.fontColor = color;
+					}
+				}
+				
+				if(fontba != null){
+					viewContainer.ftStyle = fontba.readUTF();
+				}
+				
+				if(sequenceba != null){
+					var sequencestr:String = sequenceba.readUTF();
+					if(sequencestr == "Random") PoolManager.serialPool = false;
+					else PoolManager.serialPool = true;
+				}
+				
+				if(xba != null && yba != null){
+					var xpos:Number = Number(xba.readUTF());
+					var ypos:Number = Number(yba.readUTF());
+					if(!isNaN(xpos) && !isNaN(ypos)){
+						stage.nativeWindow.x = xpos;
+						stage.nativeWindow.y = ypos;
+						
+						return;
+					}				
+				}
+				
+				stage.nativeWindow.x = Screen.mainScreen.visibleBounds.width/2 - this.width/2;
+				stage.nativeWindow.y = Screen.mainScreen.visibleBounds.height/2 - this.height/2;
+			}
+			
+			private function onMouseDown(e:MouseEvent):void{
+				stage.nativeWindow.startMove();
+			}
+			
+			private function hideWindow(xpos:int, ypos:int):void{
+				this.hide = true;
+					
+				if(ypos < 0){
+					ypos = -200;
+					xpos = xpos<0 ? 0 : xpos;
+				}else if(xpos < 0){
+					xpos = -200;
+					ypos = ypos<0 ? 0 : ypos;
+				}
+				
+				stage.nativeWindow.x = xpos;
+				stage.nativeWindow.y = ypos;
+				stage.nativeWindow.width = 205;
+				stage.nativeWindow.height = 205;
+				
+				this.viewContainer.taInfoInput.visible = true;
+			}
+			
+			private function onMouseUp(e:MouseEvent):void{
+				trace("mouse up");
+				
+				var xpos:Number = stage.nativeWindow.x;
+				var ypos:Number = stage.nativeWindow.y;
+			
+				if(xpos < 0 || ypos < 0){
+					if(this.hide == true) return;
+					else return hideWindow(xpos, ypos);
+				}else{
+					this.hide = false;
+					if(!this.editing){ 
+						this.viewContainer.taInfoInput.visible = false;
+					}
+				}
+				
+				var xba:ByteArray = new ByteArray;
+				var yba:ByteArray = new ByteArray;
+				xba.writeUTF(xpos.toString());
+				yba.writeUTF(ypos.toString());
+				EncryptedLocalStore.setItem("XPOS", xba);
+				EncryptedLocalStore.setItem("YPOS", yba);
+			}
+			
+			private function onDoubleClick(e:MouseEvent):void{
+				this.editing = true;
+				viewContainer.edit();
+				trace("on mouse double click");
+			}
+			
+			
+			private function onMouseOver(e:MouseEvent):void{
+				viewContainer.hangout();
+				//trace("on mouse over");
+			}
+			
+			private function onMouseOut(e:MouseEvent):void{
+				viewContainer.finishHangout();
+				trace("on mouse out");
+			}
+			
+			private function onClose(e:Event):void{
+				NativeApplication.nativeApplication.exit(0);
+			}
+			
+			private function keyListener(event:KeyboardEvent):void
+			{
+				if(event.ctrlKey )
+				{
+					if(event.keyCode == 100 || event.keyCode == 68)//Ctrl+d
+					{
+						trace("delete");
+						viewContainer.deleteCurrent();
+					}
+					else if(event.keyCode == 104 || event.keyCode == 72)//Ctrl+h
+					{
+						trace("help");
+						var userHelp:HelpPanel = new HelpPanel();
+						userHelp.open();
+						//userHelp.createWindow(this);
+					}
+					else if(event.keyCode == 99 || event.keyCode == 67)//Ctrl+c
+					{
+						trace("color");
+						colorPanel = new ColorChooser();
+						colorPanel.obj = this;
+						colorPanel.formerColor = viewContainer.fontColor;
+						colorPanel.open();
+						setPosition(colorPanel); 
+					}
+					else if(event.keyCode == 102 || event.keyCode == 70)//Ctrl+f
+					{
+						trace("font");
+						var fontPanel:FontChooser = new FontChooser();
+						fontPanel.obj = this;
+						fontPanel.open();
+						setPosition(fontPanel); 
+						fontPanel.init();
+						fontPanel.setDefaultFont(viewContainer.ftStyle);
+					}
+					else if(event.keyCode == 116 || event.keyCode == 84)//Ctrl+t
+					{
+						trace("total");
+						var datagridWindow:DataGridWindow = new DataGridWindow();
+						datagridWindow.open();
+						datagridWindow.stage.nativeWindow.x = stage.nativeWindow.x;
+						datagridWindow.stage.nativeWindow.y = stage.nativeWindow.y + stage.nativeWindow.height + 20;
+					}
+					else if(event.keyCode == 109 || event.keyCode == 77)//ctrl+m
+					{
+						var sendMailWindow:SendMailConf = new SendMailConf();
+						sendMailWindow.open();
+						
+						trace("mail");
+					}
+					else if(event.keyCode == 115 || event.keyCode == 83) //ctrl+s
+					{
+						trace("sequence");
+						var sequencePanel:SequenceChooser = new SequenceChooser();
+						sequencePanel.obj = this;
+						sequencePanel.open();
+						setPosition(sequencePanel); 
+					}
+
+				}
+			}
+			
+			//ugly implementation, because event machanism is not working 
+			public function callBack(sig:String, data:String):void{
+				trace("received " + data);
+				if(sig == "font"){
+					viewContainer.ftStyle = data;
+					
+					var fontba:ByteArray = new ByteArray;
+					fontba.writeUTF(data.toString());
+					EncryptedLocalStore.setItem("FONT", fontba);
+				}else if(sig == "color"){
+					var numData:uint = (uint)(data);
+					viewContainer.fontColor = numData;
+					
+					var colorba:ByteArray = new ByteArray;
+					colorba.writeUTF(data.toString());
+					EncryptedLocalStore.setItem("COLOR", colorba);
+				}else if(sig == "sequence"){
+					if(data == "Random") PoolManager.serialPool = false;
+					else PoolManager.serialPool = true;
+					
+					var sequenceba:ByteArray = new ByteArray;
+					sequenceba.writeUTF(data.toString());
+					EncryptedLocalStore.setItem("SEQUENCE", sequenceba);					
+				}
+			}
+			
+			private function setPosition(win:DisplayObject):void{
+				var xpos:Number = this.stage.nativeWindow.x;
+				var ypos:Number = this.stage.nativeWindow.y;
+				var xxpos:Number = xpos - 200;
+				if(xxpos < 0) xxpos = xpos + this.stage.nativeWindow.width + 20;
+				win.stage.nativeWindow.x = xxpos;
+				win.stage.nativeWindow.y = ypos;
+			}
+			
+			private function onTimer(e:TimerEvent):void{
+				var db:NSDB = new NSDB;
+				
+				var pool:PoolManager = new PoolManager(this.viewContainer);
+				if(db.createDB()) 
+					pool.start();
+			}			
+
+		]]>
+	</fx:Script>
+	
+	
+	<view:NSTextContainer id="viewContainer" x="0" y="0" top="0" bottom="0" right="0" left="0"/>
+	
+</s:Window>
+
+
